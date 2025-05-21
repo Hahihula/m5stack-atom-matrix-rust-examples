@@ -58,7 +58,7 @@ If you don't have Rust and the necessary tools installed, follow these steps:
 3.  **Add the Xtensa Target:**
 
     ```bash
-    rustup target add xtensa-esp32-espidf
+    rustup target add xtensa-esp32-none-elf
     ```
 
 ### 2. Install `espup` and ESP-IDF

@@ -1,10 +1,4 @@
 //! Demonstrates blinking LEDs using RMT and pulse sequences
-//!
-//! Connect a sk6812 RGBW LED strip to GPIO4.
-//!
-//! The following wiring is assumed:
-//! - led_strip_data => GPIO4
-
 #![no_std]
 #![no_main]
 
@@ -20,12 +14,6 @@ use esp_hal::{
 };
 use esp_println::println;
 
-// const T0H: u16 = 35;
-// const T0L: u16 = 90;
-// const T1H: u16 = 70;
-// const T1L: u16 = 55;
-
-// Adjusted timing constants for ESP32-PICO (values in clock cycles)
 // Assuming 80MHz clock, each cycle is 12.5ns
 const T0H: u16 = 32;  // ~400ns (spec: 400ns±150ns)
 const T0L: u16 = 70;  // ~875ns (spec: 850ns±150ns)
@@ -76,11 +64,10 @@ async fn main(_spawner: Spawner) {
     loop {
         println!("Settings LED colors:");
         for i in 0..25 {
-            let r = rng.random() % 5;
-            let g = rng.random() % 5;
-            let b = rng.random() % 5;
+            let r = rng.random() % 50;
+            let g = rng.random() % 50;
+            let b = rng.random() % 50;
 
-            // No white channel for WS2812B
             let data = create_led_bits(r as u8, g as u8, b as u8);
             channel.transmit(&data).await.unwrap();
         }
