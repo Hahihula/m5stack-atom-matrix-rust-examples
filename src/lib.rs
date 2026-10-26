@@ -17,6 +17,9 @@ pub const MATRIX_GPIO: u8 = 27;
 /// Number of pixels in the matrix (5x5).
 pub const NUM_PIXELS: usize = 25;
 
+/// The async RMT TX channel driving the matrix data pin.
+pub type MatrixChannel = Channel<'static, esp_hal::Async, esp_hal::rmt::Tx>;
+
 // RMT tick is 12.5 ns at 80 MHz with a clock divider of 1.
 const T0H: u16 = 32; // ~400 ns (spec: 400 ns ± 150 ns)
 const T0L: u16 = 70; // ~875 ns (spec: 850 ns ± 150 ns)
@@ -81,6 +84,44 @@ pub async fn fill_matrix(
     b: u8,
 ) -> Result<(), esp_hal::rmt::Error> {
     for _ in 0..NUM_PIXELS {
+        send_pixel(channel, r, g, b).await?;
+    }
+    Ok(())
+}
+
+/// Physical LED layout of the 5x5 matrix.
+///
+/// Determined empirically with `examples/diag_led_order.rs`: the strip is
+/// wired in progressive row-major order — index 0 is the top-left pixel as
+/// viewed, each row runs left to right, and every row restarts on the left
+/// (index 5 is directly below index 0). So `LED_MAP[y][x] = y * 5 + x`,
+/// kept as an explicit table so orientation tweaks stay a one-place fix.
+const LED_MAP: [[u8; 5]; 5] = [
+    [0, 1, 2, 3, 4],
+    [5, 6, 7, 8, 9],
+    [10, 11, 12, 13, 14],
+    [15, 16, 17, 18, 19],
+    [20, 21, 22, 23, 24],
+];
+
+/// Strip index (0..25) of the pixel at column `x`, row `y`.
+///
+/// Row 0 is the top row, column 0 the left column, per the official M5Atom
+/// layout. If a drawing appears rotated or mirrored on your unit, this is the
+/// single place to fix the orientation.
+pub fn strip_index(x: usize, y: usize) -> usize {
+    LED_MAP[y][x] as usize
+}
+
+/// Send a full frame of RGB colors, one entry per strip index (0..25).
+///
+/// Frames must be composed with [`strip_index`] so the picture appears at the
+/// intended matrix position.
+pub async fn send_frame(
+    channel: &mut Channel<'static, esp_hal::Async, esp_hal::rmt::Tx>,
+    frame: &[(u8, u8, u8); NUM_PIXELS],
+) -> Result<(), esp_hal::rmt::Error> {
+    for &(r, g, b) in frame {
         send_pixel(channel, r, g, b).await?;
     }
     Ok(())
