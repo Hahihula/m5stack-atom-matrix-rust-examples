@@ -43,41 +43,23 @@ This repository provides `no_std` Rust examples for the M5Stack Atom Matrix boar
 
 If you don't have Rust and the necessary tools installed, follow these steps:
 
-### 1. Install Rust and Nightly Toolchain
+### 1. Install Rust and the Xtensa toolchain
+
+The Atom Matrix uses an ESP32 (Xtensa). `esp-hal` 1.2.2 needs Rust 1.95 or newer, and Xtensa still needs the Espressif compiler fork. This repo pins that compiler with `rust-toolchain.toml` (`channel = "esp"`).
 
 1.  **Install Rustup:**
     * Visit [rustup.rs](https://rustup.rs) and follow the installation instructions for your operating system.
 
-2.  **Add the Nightly Toolchain:**
+2.  **Install `espup` and the toolchain:**
 
     ```bash
-    rustup toolchain install nightly
-    rustup default nightly
-    ```
-
-3.  **Add the Xtensa Target:**
-
-    ```bash
-    rustup target add xtensa-esp32-none-elf
-    ```
-
-### 2. Install `espup` and ESP-IDF
-
-1.  **Install `espup`:**
-
-    ```bash
-    cargo install espup
-    ```
-
-2.  **Install ESP-IDF:**
-
-    ```bash
+    cargo install espup --locked
     espup install
     ```
 
-    * Follow the prompts to install the required ESP-IDF components.
+    On Unix, source the exported environment (`source ~/export-esp.sh`) so `cargo` can find the Xtensa linker. See the [Rust on ESP book](https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html).
 
-### 3. Install `cargo-espflash`
+### 2. Install `cargo-espflash`
 
 1.  **Install `cargo-espflash`:**
 
@@ -91,7 +73,7 @@ If you don't have Rust and the necessary tools installed, follow these steps:
     cargo espflash --version
     ```
 
-### 4. Clone and Build
+### 3. Clone and Build
 
 1.  **Clone the Repository:**
 

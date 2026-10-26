@@ -1,14 +1,19 @@
-[target.xtensa-esp32-none-elf]
-runner = "espflash flash --monitor --chip esp32"
-
 [env]
+# Atom Matrix uses an ESP32-PICO-D4 (this board is v1.1). esp-hal 1.2 defaults
+# to revision 300 (v3.0), and the bootloader then rejects the app. Value is
+# major * 100 + minor. 100 accepts v1.0 and v1.1.
+ESP_HAL_CONFIG_MIN_CHIP_REVISION = "100"
 
 [build]
+target = "xtensa-esp32-none-elf"
+
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --monitor --chip esp32"
 rustflags = [
+  # GNU LD, used by the Xtensa toolchain.
+  "-C", "link-arg=-Wl,-Tlinkall.x",
   "-C", "link-arg=-nostartfiles",
 ]
-
-target = "xtensa-esp32-none-elf"
 
 [unstable]
 build-std = ["alloc", "core"]

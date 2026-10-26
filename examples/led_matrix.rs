@@ -1,4 +1,7 @@
-//! Demonstrates blinking LEDs using RMT and pulse sequences
+//! Drive the M5Stack Atom Matrix 5x5 WS2812 matrix from GPIO27.
+//!
+//! Brighter variant of the binary in `src/main.rs`.
+
 #![no_std]
 #![no_main]
 
@@ -7,24 +10,25 @@ use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::{
     gpio::Level,
-    rmt::{PulseCode, Rmt, TxChannelAsync, TxChannelConfig, TxChannelCreatorAsync},
+    rmt::{PulseCode, Rmt, TxChannelConfig, TxChannelCreator},
     rng::Rng,
     time::Rate,
     timer::timg::TimerGroup,
 };
 use esp_println::println;
 
-// Assuming 80MHz clock, each cycle is 12.5ns
-const T0H: u16 = 32;  // ~400ns (spec: 400ns±150ns)
-const T0L: u16 = 70;  // ~875ns (spec: 850ns±150ns)
-const T1H: u16 = 64;  // ~800ns (spec: 800ns±150ns)
-const T1L: u16 = 38;  // ~475ns (spec: 450ns±150ns)
-const RESET: u16 = 2000; // >50μs reset code
+esp_bootloader_esp_idf::esp_app_desc!();
 
-fn create_led_bits(r: u8, g: u8, b: u8) -> [u32; 25] {
-    let mut data = [PulseCode::empty(); 25];
+// RMT tick is 12.5 ns at 80 MHz with a clock divider of 1.
+const T0H: u16 = 32; // ~400 ns (spec: 400 ns ± 150 ns)
+const T0L: u16 = 70; // ~875 ns (spec: 850 ns ± 150 ns)
+const T1H: u16 = 64; // ~800 ns (spec: 800 ns ± 150 ns)
+const T1L: u16 = 38; // ~475 ns (spec: 450 ns ± 150 ns)
 
-    // WS2812B expects GRB order
+fn create_led_bits(r: u8, g: u8, b: u8) -> [PulseCode; 25] {
+    let mut data = [PulseCode::new(Level::Low, 0, Level::Low, 0); 25];
+
+    // WS2812 expects GRB order.
     let bytes = [g, r, b];
 
     let mut idx = 0;
@@ -38,32 +42,32 @@ fn create_led_bits(r: u8, g: u8, b: u8) -> [u32; 25] {
             idx += 1;
         }
     }
-    data[24] = PulseCode::new(Level::Low, 800, Level::Low, 0); // Reset code
+    // A zero-length second pulse is the RMT end marker. 800 ticks is ~10 µs low.
+    data[24] = PulseCode::new(Level::Low, 800, Level::Low, 0);
     data
 }
-#[esp_hal_embassy::main]
+
+#[esp_hal::main]
 async fn main(_spawner: Spawner) {
     let peripherals = esp_hal::init(esp_hal::Config::default());
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_hal_embassy::init(timg0.timer0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
-    let freq = Rate::from_mhz(80);
-
-    let rmt = Rmt::new(peripherals.RMT, freq).unwrap().into_async();
+    let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
+        .unwrap()
+        .into_async();
 
     let mut channel = rmt
         .channel0
-        .configure(
-            peripherals.GPIO27,
-            TxChannelConfig::default().with_clk_divider(1),
-        )
-        .unwrap();
+        .configure_tx(&TxChannelConfig::default().with_clk_divider(1))
+        .unwrap()
+        .with_pin(peripherals.GPIO27);
 
-    let mut rng = Rng::new(peripherals.RNG);
+    let rng = Rng::new();
 
     loop {
         println!("Settings LED colors:");
-        for i in 0..25 {
+        for _ in 0..25 {
             let r = rng.random() % 50;
             let g = rng.random() % 50;
             let b = rng.random() % 50;
