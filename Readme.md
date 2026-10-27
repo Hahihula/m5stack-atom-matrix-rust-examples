@@ -102,8 +102,25 @@ The Atom Matrix uses an ESP32 (Xtensa). `esp-hal` 1.2.2 needs Rust 1.95 or newer
 
 ## Examples
 
-* **`led_matrix`:** Basic LED matrix control.
+All examples use `no_std` and share the helpers in `src/lib.rs` (WS2812 matrix driver, LED layout map, digit font). Board wiring used throughout: LED matrix on **G27**, user button on **G39** (active-low), IMU (MPU6886) on the internal I2C bus (SDA=G25, SCL=G21).
+
+* **`led_matrix`:** Basic LED matrix control — random colors per pixel.
     * Build and flash: `cargo espflash flash --release --example led_matrix`
+* **`solid_color`:** Lights the whole matrix in one color; each button press picks a new random color.
+    * Build and flash: `cargo espflash flash --release --example solid_color`
+* **`counter`:** Shows a 3x5 digit (0–9, wrapping) centered on the matrix; each button press increments it.
+    * Build and flash: `cargo espflash flash --release --example counter`
+* **`dice`:** Shake the board to roll a die — a random face (1–6) is shown as pips on the matrix. Uses the MPU6886 accelerometer for shake detection.
+    * Build and flash: `cargo espflash flash --release --example dice`
+* **`diag_led_order`:** Diagnostic for the physical LED ordering: runs labeled test patterns (all on, per-LED chase, groups of five, corners) while printing what is shown to the console.
+    * Build and flash: `cargo espflash flash --release --example diag_led_order`
+* **`i2c_scan`:** Scans the I2C bus on both possible SDA/SCL pin orders and prints every responding device address. Handy when wiring up new I2C peripherals.
+    * Build and flash: `cargo espflash flash --release --example i2c_scan`
+
+## Repository Layout
+
+* `src/lib.rs` — shared helpers: the WS2812 matrix driver (`Matrix`), the verified physical LED map, digit font, and I2C diagnostics support.
+* `examples/` — one runnable demo per feature (see list above).
 
 **Contributing**
 
